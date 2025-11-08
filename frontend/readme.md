@@ -1,0 +1,1 @@
+This folder contains all the frontend logic for the app. Please include descriptions/documentation here.
