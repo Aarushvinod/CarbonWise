@@ -7,7 +7,8 @@
     "activeTab",
     "storage",
     "scripting",
-    "offscreen"
+    "offscreen",
+    "clipboardWrite"
   ],
   "host_permissions": [
     "<all_urls>",
@@ -18,7 +19,47 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content.js"],
+      "js": ["lib/sites.js", "content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "*://chatgpt.com/*",
+        "*://*.chatgpt.com/*",
+        "*://openai.com/*",
+        "*://*.openai.com/*",
+        "*://claude.ai/*",
+        "*://*.anthropic.com/*",
+        "*://perplexity.ai/*",
+        "*://*.perplexity.ai/*",
+        "*://gemini.google.com/*",
+        "*://*.gemini.google.com/*",
+        "*://bard.google.com/*",
+        "*://*.bing.com/*",
+        "*://copilot.microsoft.com/*",
+        "*://*.copilot.microsoft.com/*",
+        "*://poe.com/*",
+        "*://*.poe.com/*",
+        "*://phind.com/*",
+        "*://*.phind.com/*",
+        "*://you.com/*",
+        "*://*.you.com/*",
+        "*://huggingface.co/*",
+        "*://*.huggingface.co/*",
+        "*://coze.com/*",
+        "*://*.coze.com/*",
+        "*://pi.ai/*",
+        "*://*.pi.ai/*",
+        "*://groq.com/*",
+        "*://*.groq.com/*",
+        "*://writesonic.com/*",
+        "*://*.writesonic.com/*",
+        "*://chatsonic.com/*",
+        "*://*.chatsonic.com/*",
+        "*://meta.ai/*",
+        "*://*.meta.ai/*"
+      ],
+      "js": ["lib/sites.js", "prompt-optimizer.js"],
       "run_at": "document_idle"
     }
   ],

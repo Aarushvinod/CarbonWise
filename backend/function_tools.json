@@ -1,0 +1,51 @@
+{"function_tools" : 
+    [
+        {
+            "name": "estimate_flight_emissions_icao",
+            "description": "Estimate per-passenger CO₂ for each leg using ICAO methodology with internal industry averages (no manufacturing/config inputs required).",
+            "parameters": 
+            {
+                "type": "object",
+                "properties": 
+                {
+                    "itinerary": 
+                    {
+                        "type": "array",
+                        "description": "One or more flight legs; if omitted, upstream logic should provide at least origin/destination.",
+                        "items": 
+                        {
+                            "type": "object",
+                            "properties": 
+                            {
+                                "origin_iata": { "type": "string", "minLength": 3, "maxLength": 3 },
+                                "destination_iata": { "type": "string", "minLength": 3, "maxLength": 3 },
+                                "departure_date": { "type": "string", "description": "YYYY-MM-DD", "nullable": true },
+                                "marketing_carrier": { "type": "string", "nullable": true },
+                                "operating_carrier": { "type": "string", "nullable": true },
+                                "flight_number": { "type": "string", "nullable": true },
+                                "aircraft_icao": { "type": "string", "description": "If known (e.g., B77W, A359).", "nullable": true },
+                                "block_time_minutes": { "type": "number", "nullable": true }
+                            },
+                            "required": ["origin_iata", "destination_iata"]
+                        }
+                    },
+                        "cabin_class": 
+                    {
+                            "type": "string",
+                            "enum": ["economy", "premium_economy", "business", "first"],
+                            "description": "Used for cabin allocation via Yseat. Defaults to economy if unknown."
+                    },
+                        "num_passengers": 
+                    {
+                            "type": "integer",
+                            "minimum": 1,
+                            "default": 1,
+                            "description": "Passengers to multiply per-pax emissions by."
+                    }
+                },
+                    "required": ["cabin_class"],
+                    "additionalProperties": false
+        }
+        }
+    ]
+}
