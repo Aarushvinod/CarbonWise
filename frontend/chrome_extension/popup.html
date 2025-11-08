@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Carbon Footprint Estimator</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 400px;
+      min-height: 300px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #f5f5f5;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+
+    .header p {
+      font-size: 12px;
+      opacity: 0.9;
+    }
+
+    .content {
+      padding: 20px;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px 20px;
+      color: #666;
+    }
+
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #667eea;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .error {
+      background: #fee;
+      border: 1px solid #fcc;
+      border-radius: 8px;
+      padding: 15px;
+      color: #c33;
+      margin: 20px;
+    }
+
+    .result {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .total {
+      text-align: center;
+      margin-bottom: 25px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid #eee;
+    }
+
+    .total-value {
+      font-size: 36px;
+      font-weight: 700;
+      color: #667eea;
+      margin: 10px 0;
+    }
+
+    .total-range {
+      font-size: 14px;
+      color: #666;
+      margin-top: 5px;
+    }
+
+    .confidence-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      margin-top: 10px;
+    }
+
+    .confidence-high {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .confidence-medium {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .confidence-low {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .breakdown {
+      margin-top: 20px;
+    }
+
+    .breakdown h3 {
+      font-size: 14px;
+      color: #333;
+      margin-bottom: 15px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .breakdown-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #eee;
+    }
+
+    .breakdown-item:last-child {
+      border-bottom: none;
+    }
+
+    .breakdown-label {
+      font-size: 13px;
+      color: #666;
+    }
+
+    .breakdown-value {
+      font-size: 14px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .breakdown-value.credit {
+      color: #28a745;
+    }
+
+    .method {
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 1px solid #eee;
+      font-size: 11px;
+      color: #999;
+      text-align: center;
+    }
+
+    .location-selector {
+      margin-bottom: 15px;
+      padding: 10px;
+      background: white;
+      border-radius: 8px;
+    }
+
+    .location-selector label {
+      display: block;
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 5px;
+    }
+
+    .location-selector select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+
+    .button {
+      width: 100%;
+      padding: 12px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 15px;
+      transition: background 0.2s;
+    }
+
+    .button:hover {
+      background: #5568d3;
+    }
+
+    .button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🌱 Carbon Footprint</h1>
+    <p>Product Impact Estimator</p>
+  </div>
+
+  <div class="content">
+    <!-- Auth Section -->
+    <div id="authSection" style="margin-bottom: 15px;">
+      <div id="userInfo" style="display: none; padding: 10px; background: white; border-radius: 8px; margin-bottom: 10px; font-size: 12px;">
+        <strong>Signed in as:</strong> <span id="userEmail"></span>
+        <button id="signOutBtn" class="button" style="background: #dc3545; margin-top: 8px; padding: 6px;">Sign Out</button>
+      </div>
+      <div id="authForm" style="padding: 10px; background: white; border-radius: 8px; margin-bottom: 10px;">
+        <input type="email" id="emailInput" placeholder="Email" style="width: 100%; padding: 8px; margin-bottom: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; box-sizing: border-box;">
+        <input type="password" id="passwordInput" placeholder="Password" style="width: 100%; padding: 8px; margin-bottom: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; box-sizing: border-box;">
+        <button id="signInBtn" class="button" style="background: #667eea; margin-bottom: 4px; padding: 8px;">Sign In</button>
+        <button id="signUpBtn" class="button" style="background: #28a745; padding: 8px;">Create Account</button>
+      </div>
+    </div>
+
+    <div class="location-selector">
+      <label for="location">Your Location:</label>
+      <select id="location">
+        <option value="US">United States</option>
+        <option value="GB">United Kingdom</option>
+        <option value="DE">Germany</option>
+        <option value="FR">France</option>
+        <option value="CA">Canada</option>
+        <option value="AU">Australia</option>
+        <option value="CN">China</option>
+        <option value="JP">Japan</option>
+      </select>
+    </div>
+
+    <button id="estimateBtn" class="button">Estimate Carbon Footprint</button>
+
+    <div id="result"></div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
+
