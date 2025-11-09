@@ -3,7 +3,7 @@ from typing import Optional
 
 class PageIn(BaseModel):
     url: HttpUrl
-    html: str
+    userID: str
 
 class SummaryOut(BaseModel):
     summary: str

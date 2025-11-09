@@ -222,3 +222,135 @@ def shopping_predict_carbon_footprint(payload: dict) -> float:
         _ = (samples[0], samples[-1])  # keep lint quiet
 
     return float(round(total, 6))
+
+
+from math import radians, sin, cos, sqrt, atan2
+from typing import Dict, Any, List
+
+def get_flight_emissions(schema) -> float:
+    """
+    Estimate total flight emissions (kg CO2e) for ALL passengers from the given schema.
+    Signature: def get_flight_emissions(schema: dict) -> float
+
+    Behavior:
+      - Uses aircraft fuel-burn (kg/h) when aircraft_icao is present and known and block_time_minutes > 0.
+      - Falls back to distance * EF when aircraft info is unavailable.
+      - Applies default combustion factor (3.16 kgCO2/kg fuel), cabin multipliers, load factor, and RFI.
+      - Returns a single float: total kg CO2e for ALL passengers for the itinerary.
+    """
+    # ---- helpers ----
+    def haversine_km(lat1, lon1, lat2, lon2) -> float:
+        R = 6371.0
+        phi1 = radians(lat1); phi2 = radians(lat2)
+        dphi = radians(lat2 - lat1); dlambda = radians(lon2 - lon1)
+        a = sin(dphi/2.0)**2 + cos(phi1)*cos(phi2)*sin(dlambda/2.0)**2
+        c = 2 * atan2(sqrt(a), sqrt(1-a))
+        return R * c
+
+    # ---- IATA coords (small set; extend as needed) ----
+    IATA_COORDS = {
+        "JFK": (40.6413, -73.7781), "LHR": (51.4700, -0.4543),
+        "LAX": (33.9416, -118.4085), "CDG": (49.0097, 2.5479),
+        "SFO": (37.7749, -122.4194), "ORD": (41.9742, -87.9073),
+        "ATL": (33.6407, -84.4277), "DXB": (25.2532, 55.3657),
+        "HND": (35.5494, 139.7798), "ICN": (37.4602, 126.4407),
+        "SIN": (1.3644, 103.9915), "SYD": (-33.9399, 151.1753)
+    }
+
+    # ---- Expanded aircraft lookup (approximate defaults) ----
+    # Values sourced from public fuel-burn summaries (ICCT, EUROCONTROL, curated tables).
+    # Use operator/ICEC-provided block fuel for regulatory accuracy.
+    AIRCRAFT_LOOKUP = {
+        # narrowbodies (kg fuel per hour, typical seats)
+        "A318": {"fuel_kg_h": 2200, "typical_seats": 110},
+        "A319": {"fuel_kg_h": 2374, "typical_seats": 140},
+        "A320": {"fuel_kg_h": 2430, "typical_seats": 150},
+        "A321": {"fuel_kg_h": 2740, "typical_seats": 185},
+        "B738": {"fuel_kg_h": 2400, "typical_seats": 160},  # 737-800 ~2.4 t/h
+        "B737": {"fuel_kg_h": 2400, "typical_seats": 160},
+
+        # medium widebodies
+        "A330": {"fuel_kg_h": 5650, "typical_seats": 275},
+        "A332": {"fuel_kg_h": 5590, "typical_seats": 250},
+        "A333": {"fuel_kg_h": 5700, "typical_seats": 277},
+        "B763": {"fuel_kg_h": 4800, "typical_seats": 240},
+        "B764": {"fuel_kg_h": 4940, "typical_seats": 260},
+
+        # newer long-range twins
+        "B788": {"fuel_kg_h": 4500, "typical_seats": 246},
+        "B789": {"fuel_kg_h": 5000, "typical_seats": 280},
+        "A359": {"fuel_kg_h": 5800, "typical_seats": 300},  # A350-900 ~5.8 t/h
+        "B77W": {"fuel_kg_h": 8000, "typical_seats": 365},  # 777-300ER ~7-8 t/h
+
+        # large / very large
+        "A380": {"fuel_kg_h": 11500, "typical_seats": 525},  # ~11-12 t/h
+        "B744": {"fuel_kg_h": 10000, "typical_seats": 416},  # 747-400 approx 10 t/h
+        "B748": {"fuel_kg_h": 11000, "typical_seats": 410},  # 747-8 approx 11 t/h
+    }
+
+    # ---- constants & defaults ----
+    KGCO2_PER_KG_FUEL = 3.16
+    RFI = 1.3
+    AVG_BLOCK_SPEED_KMH = 900.0
+    DEFAULT_LOAD_FACTOR = 0.85
+    CABIN_MULTIPLIERS = {"economy": 1.0, "premium_economy": 1.5, "business": 2.5, "first": 3.5}
+    FALLBACK_ECONOMY_EF = 0.09  # kgCO2 per pax-km (economy base, fallback)
+
+    cabin = schema.get("cabin_class", "economy")
+    cabin_mult = CABIN_MULTIPLIERS.get(cabin, 1.0)
+    try:
+        num_passengers = max(1, int(schema.get("num_passengers", 1)))
+    except Exception:
+        num_passengers = 1
+    itinerary = schema.get("itinerary", [])
+
+    # ---- compute ----
+    total_kgCO2e_all_passengers = 0.0
+
+    for leg in itinerary:
+        origin = (leg.get("origin_iata") or "").upper()
+        destination = (leg.get("destination_iata") or "").upper()
+        if not origin or not destination:
+            raise ValueError("Each leg must include 'origin_iata' and 'destination_iata'.")
+
+        # distance if coords available
+        distance_km = 0.0
+        if origin in IATA_COORDS and destination in IATA_COORDS:
+            lat1, lon1 = IATA_COORDS[origin]; lat2, lon2 = IATA_COORDS[destination]
+            distance_km = haversine_km(lat1, lon1, lat2, lon2)
+
+        # block hours (hours) preference: explicit block_time_minutes, else distance fallback
+        block_minutes = leg.get("block_time_minutes")
+        block_hours = None
+        if block_minutes is not None:
+            try:
+                block_hours = float(block_minutes) / 60.0
+            except Exception:
+                block_hours = None
+        if block_hours is None:
+            block_hours = (distance_km / AVG_BLOCK_SPEED_KMH) if distance_km > 0 else 0.0
+
+        # try aircraft lookup
+        aircraft_code = (leg.get("aircraft_icao") or "").upper()
+        aircraft_info = AIRCRAFT_LOOKUP.get(aircraft_code)
+
+        if aircraft_info and block_hours > 0:
+            # aircraft fuel-burn method
+            fuel_kg_per_h = float(aircraft_info["fuel_kg_h"])
+            seats = int(aircraft_info["typical_seats"])
+            fuel_kg_leg = fuel_kg_per_h * block_hours
+            kgco2_from_fuel = fuel_kg_leg * KGCO2_PER_KG_FUEL
+            per_pax_co2 = kgco2_from_fuel / (seats * DEFAULT_LOAD_FACTOR)
+            per_pax_co2_alloc = per_pax_co2 * cabin_mult
+            per_pax_co2e = per_pax_co2_alloc * RFI
+            leg_total = per_pax_co2e * num_passengers
+            total_kgCO2e_all_passengers += leg_total
+        else:
+            # fallback distance-based EF
+            ef_per_pax_per_km = FALLBACK_ECONOMY_EF * cabin_mult
+            per_pax_co2 = distance_km * ef_per_pax_per_km
+            per_pax_co2e = per_pax_co2 * RFI
+            leg_total = per_pax_co2e * num_passengers
+            total_kgCO2e_all_passengers += leg_total
+
+    return float(total_kgCO2e_all_passengers)
