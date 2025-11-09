@@ -1,29 +1,30 @@
 .advice-container {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  width: 100%;
   gap: 20px;
 }
 
 .advice-button {
-  padding: 15px 30px;
+  padding: 12px 24px;
   background-color: #27ae60;
   color: white;
-  border: none;
-  border-radius: 4px;
+  border: 2px solid #229954;
+  border-radius: 6px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.3s;
-  display: inline-block;
-  visibility: visible;
-  position: relative;
-  z-index: 1;
-  min-width: 200px;
+  transition: all 0.3s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  display: block;
+  width: 100%;
+  text-align: center;
 }
 
 .advice-button:hover:not(:disabled) {
   background-color: #229954;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 .advice-button:disabled {

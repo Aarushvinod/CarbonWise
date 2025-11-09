@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { doc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 import './Dashboard.css';
+import './Header.css';
 import AdviceButton from './AdviceButton';
 
 function Dashboard() {
@@ -339,80 +340,97 @@ Respond with ONLY the number, no additional text or explanation. For example, if
 
   return (
     <div className="dashboard">
-      <header className="dashboard-header">
-        <h1>Sustainability Carbon Footprint Tracker</h1>
-        <div className="header-actions">
+      <header className="app-header">
+        <div className="header-left">
+          <div className="logo-container" onClick={() => navigate('/')}>
+            <img 
+              src="/images/LOGONEW 2.png" 
+              alt="CO₂Ldown Logo" 
+              className="logo-image"
+            />
+          </div>
+        </div>
+        <div className="header-divider"></div>
+        <div className="header-right">
+          {user && <span className="user-email">{user.email}</span>}
           <button 
             onClick={() => setShowAddFriendModal(true)}
-            className="find-friends-button"
+            className="header-button header-button-primary"
           >
             Find Friends
           </button>
-          {user && <span className="user-email">{user.email}</span>}
-          <button onClick={handleLogout} className="logout-button">
+          <button onClick={handleLogout} className="header-button header-button-logout">
+            <span className="logout-icon">➜]</span>
             Logout
           </button>
         </div>
       </header>
       <div className="dashboard-container">
-        <div className="carbon-score-section">
-          <h2>Your Carbon Score</h2>
-          <div className="score-display">
-            <span className="score-value">{loading ? '...' : carbonScore.toFixed(1)}</span>
-            <span className="score-unit">kg CO₂</span>
-          </div>
-        </div>
-
-        <div className="add-action-button-section" style={{ display: 'flex', visibility: 'visible', padding: '20px', margin: '20px 0', backgroundColor: '#ffffff', borderRadius: '8px' }}>
-          <button 
-            onClick={() => setShowAddActionModal(true)}
-            className="open-add-action-button"
-            style={{ 
-              display: 'block', 
-              visibility: 'visible', 
-              padding: '15px 30px',
-              backgroundColor: '#27ae60',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              fontSize: '18px',
-              fontWeight: '600',
-              cursor: 'pointer'
-            }}
-          >
-            + Add New Action
-          </button>
-        </div>
-
-        <div className="user-actions-section">
-          <h2>Your Recent Actions</h2>
-          <div className="actions-list">
-            {loading ? (
-              <p className="empty-state">Loading actions...</p>
-            ) : userActions.length === 0 ? (
-              <p className="empty-state">No actions recorded yet.</p>
-            ) : (
-              userActions.map((action, index) => (
-                <div key={index} className="action-item">
-                  <div className="action-header">
-                    <span className="action-name">{action.action || action.description || action.name}</span>
-                    <span className={`carbon-score ${(action.sustainabilityScore || action.carbonImpact || action.score) > 50 ? 'high-impact' : (action.sustainabilityScore || action.carbonImpact || action.score) > 25 ? 'medium-impact' : 'low-impact'}`}>
-                      {(action.sustainabilityScore || action.carbonImpact || action.score || 0).toFixed(1)} kg CO₂
-                    </span>
-                  </div>
-                  {action.category && (
-                    <div className="action-category">
-                      Category: {action.category}
-                    </div>
-                  )}
-                  {action.timestamp && (
-                    <div className="action-date">
-                      {new Date(action.timestamp).toLocaleDateString()}
-                    </div>
-                  )}
+        <div className="dashboard-layout">
+          <div className="dashboard-left">
+            <div className="dashboard-left-section">
+              <div className="carbon-score-display">
+                <h2>Your Carbon Score</h2>
+                <div className="score-display">
+                  <span className="score-value">{loading ? '...' : carbonScore.toFixed(1)}</span>
+                  <span className="score-unit">kg CO₂</span>
                 </div>
-              ))
-            )}
+              </div>
+
+              <div className="dashboard-buttons">
+                <button 
+                  onClick={() => setShowAddActionModal(true)}
+                  className="dashboard-button"
+                >
+                  + Add New Action
+                </button>
+
+                <AdviceButton userActions={userActions} />
+
+                <Link to="/leaderboard" className="dashboard-button dashboard-button-link">
+                  View Leaderboard
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          <div className="dashboard-right">
+            <div className="user-actions-section">
+              <h2>Your Recent Actions</h2>
+              <div className="actions-list">
+                {loading ? (
+                  <p className="empty-state">Loading actions...</p>
+                ) : userActions.length === 0 ? (
+                  <p className="empty-state">No actions recorded yet.</p>
+                ) : (
+                  userActions.map((action, index) => (
+                    <div key={index} className="action-item">
+                      <div className="action-header">
+                        <span className="action-name">{action.action || action.description || action.name}</span>
+                        <span className={`carbon-score ${(() => {
+                          const score = action.sustainabilityScore || action.carbonImpact || action.score || 0;
+                          if (score <= 0) return 'negative-impact';
+                          if (score > 0 && score < 15) return 'medium-impact';
+                          return 'high-impact';
+                        })()}`}>
+                          {(action.sustainabilityScore || action.carbonImpact || action.score || 0).toFixed(1)} kg CO₂
+                        </span>
+                      </div>
+                      {action.category && (
+                        <div className="action-category">
+                          Category: {action.category}
+                        </div>
+                      )}
+                      {action.timestamp && (
+                        <div className="action-date">
+                          {new Date(action.timestamp).toLocaleDateString()}
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -478,10 +496,6 @@ Respond with ONLY the number, no additional text or explanation. For example, if
           </div>
         )}
 
-        <div className="advice-section">
-          <AdviceButton userActions={userActions} />
-        </div>
-
         {showAddFriendModal && (
           <div className="modal-overlay" onClick={handleCloseFriendModal}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -532,12 +546,6 @@ Respond with ONLY the number, no additional text or explanation. For example, if
             </div>
           </div>
         )}
-
-        <div className="navigation-section">
-          <Link to="/leaderboard" className="nav-link">
-            View Leaderboard
-          </Link>
-        </div>
       </div>
     </div>
   );

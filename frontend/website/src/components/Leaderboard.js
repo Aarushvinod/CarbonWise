@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { doc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 import './Leaderboard.css';
+import './Header.css';
 
 function Leaderboard() {
   const [friendsList, setFriendsList] = useState([]);
@@ -227,17 +228,27 @@ function Leaderboard() {
 
   return (
     <div className="leaderboard">
-      <header className="dashboard-header">
-        <h1>Sustainability Carbon Footprint Tracker</h1>
-        <div className="header-actions">
+      <header className="app-header">
+        <div className="header-left">
+          <div className="logo-container" onClick={() => navigate('/')}>
+            <img 
+              src="/images/LOGONEW 2.png" 
+              alt="CO₂Ldown Logo" 
+              className="logo-image"
+            />
+          </div>
+        </div>
+        <div className="header-divider"></div>
+        <div className="header-right">
+          {user && <span className="user-email">{user.email}</span>}
           <button 
             onClick={() => setShowAddFriendModal(true)}
-            className="find-friends-button"
+            className="header-button header-button-primary"
           >
             Find Friends
           </button>
-          {user && <span className="user-email">{user.email}</span>}
-          <button onClick={handleLogout} className="logout-button">
+          <button onClick={handleLogout} className="header-button header-button-logout">
+            <span className="logout-icon">➜]</span>
             Logout
           </button>
         </div>
@@ -318,7 +329,7 @@ function Leaderboard() {
         )}
 
         <div className="navigation-section">
-          <Link to="/" className="nav-link">
+          <Link to="/dashboard" className="nav-link">
             Back to Dashboard
           </Link>
         </div>

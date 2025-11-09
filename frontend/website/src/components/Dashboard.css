@@ -3,132 +3,139 @@
   background-color: #f5f5f5;
 }
 
-.dashboard-header {
-  background-color: #2c3e50;
-  padding: 20px;
-  color: white;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
 
-.dashboard-header h1 {
-  font-size: 24px;
-  font-weight: 600;
-  margin: 0;
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-.user-email {
+.dashboard .app-header .user-email {
   font-size: 14px;
-  color: #ecf0f1;
+  color: #007bff !important;
   padding: 8px 12px;
-  background-color: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-}
-
-.find-friends-button {
-  padding: 8px 16px;
-  background-color: #27ae60;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 14px;
+  background-color: transparent;
+  border-radius: 6px;
   font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.3s;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  border: none !important;
+  outline: none !important;
+  filter: none !important;
+}
+
+.dashboard .app-header .header-right .header-button:not(.header-button-logout):not(.header-button-primary) {
+  color: #007bff !important;
+}
+
+.dashboard .app-header .header-right .header-button:not(.header-button-logout):not(.header-button-primary):hover {
+  color: #0056b3 !important;
+}
+
+.dashboard .app-header .header-right .header-button-primary {
+  background-color: #007bff !important;
+  color: #ffffff !important;
+  border-color: #007bff !important;
+}
+
+.dashboard .app-header .header-right .header-button-primary:hover {
+  background-color: #0056b3 !important;
+  border-color: #0056b3 !important;
+  color: #ffffff !important;
+}
+
+.dashboard .app-header .header-right .header-button-logout {
+  background-color: #dc2626 !important;
+  color: #ffffff !important;
+  border-color: #dc2626 !important;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dashboard .app-header .header-right .header-button-logout:hover {
+  background-color: #b91c1c !important;
+  border-color: #b91c1c !important;
+  color: #ffffff !important;
+}
+
+.dashboard .app-header .header-right .header-button-logout .logout-icon {
   display: inline-block;
-  visibility: visible;
-  position: relative;
-  z-index: 1;
-}
-
-.find-friends-button:hover {
-  background-color: #229954;
-}
-
-.logout-button {
-  padding: 8px 16px;
-  background-color: #e74c3c;
-  color: white;
-  border: none;
-  border-radius: 4px;
   font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.3s;
-  display: inline-block;
-  visibility: visible;
-  position: relative;
-  z-index: 1;
-}
-
-.logout-button:hover {
-  background-color: #c0392b;
+  color: #ffffff !important;
 }
 
 .dashboard-container {
   padding: 20px;
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 30px;
 }
 
-.carbon-score-section {
+.dashboard-layout {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 30px;
+  align-items: start;
+}
+
+.dashboard-left {
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-left-section {
   background: white;
   border-radius: 8px;
   padding: 30px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+.carbon-score-display {
   text-align: center;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e0e0e0;
 }
 
-.add-action-button-section {
-  display: flex !important;
-  justify-content: center;
-  align-items: center;
-  padding: 30px 20px;
-  margin: 20px 0;
-  background: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  visibility: visible !important;
-  opacity: 1 !important;
+.dashboard-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.open-add-action-button {
-  padding: 15px 30px;
-  background-color: #27ae60 !important;
-  color: white !important;
-  border: 2px solid #229954 !important;
+.dashboard-button {
+  padding: 12px 24px;
+  background-color: #27ae60;
+  color: white;
+  border: 2px solid #229954;
   border-radius: 6px;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  display: block !important;
-  visibility: visible !important;
-  position: relative;
-  z-index: 10;
-  width: auto;
-  min-width: 200px;
-  height: auto;
-  opacity: 1 !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  display: block;
+  width: 100%;
+  text-align: center;
+  text-decoration: none;
 }
 
-.open-add-action-button:hover {
+.dashboard-button:hover {
   background-color: #229954;
   transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
+
+.dashboard-button-link {
+  background-color: #3498db;
+  border-color: #2980b9;
+}
+
+.dashboard-button-link:hover {
+  background-color: #2980b9;
+}
+
+.dashboard-right {
+  display: flex;
+  flex-direction: column;
+}
+
 
 /* Modal Styles */
 .modal-overlay {
@@ -248,7 +255,7 @@
   border: 1px solid #f5c6cb;
 }
 
-.carbon-score-section h2 {
+.carbon-score-display h2 {
   color: #2c3e50;
   margin-bottom: 20px;
   font-size: 20px;
@@ -264,7 +271,7 @@
 .score-value {
   font-size: 48px;
   font-weight: bold;
-  color: #27ae60;
+  color: #2c3e50;
 }
 
 .score-unit {
@@ -325,7 +332,7 @@
   white-space: nowrap;
 }
 
-.carbon-score.low-impact {
+.carbon-score.negative-impact {
   background-color: #d4edda;
   color: #155724;
 }
@@ -427,31 +434,19 @@
   transform: none;
 }
 
-.advice-section {
-  display: flex;
-  justify-content: center;
-}
 
-.navigation-section {
-  text-align: center;
-  margin-top: -15px;
-}
-
-.nav-link {
-  display: inline-block;
-  padding: 12px 24px;
-  background-color: #3498db;
-  color: white;
-  text-decoration: none;
-  border-radius: 4px;
-  font-weight: 500;
-  transition: background-color 0.3s;
-  visibility: visible;
-  position: relative;
-  z-index: 1;
-}
-
-.nav-link:hover {
-  background-color: #2980b9;
+@media (max-width: 968px) {
+  .dashboard-layout {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .dashboard-left {
+    order: 1;
+  }
+  
+  .dashboard-right {
+    order: 2;
+  }
 }
 

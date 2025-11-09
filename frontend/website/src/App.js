@@ -4,6 +4,7 @@ import './App.css';
 import Dashboard from './components/Dashboard';
 import Leaderboard from './components/Leaderboard';
 import Login from './components/Login';
+import TitlePage from './components/TitlePage';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -11,9 +12,10 @@ function App() {
     <Router>
       <div className="App">
         <Routes>
+          <Route path="/" element={<TitlePage />} />
           <Route path="/login" element={<Login />} />
           <Route
-            path="/"
+            path="/dashboard"
             element={
               <ProtectedRoute>
                 <Dashboard />
