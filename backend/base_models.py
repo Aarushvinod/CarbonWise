@@ -1,4 +1,5 @@
-from pydantic import BaseModel, HttpUrl, Optional
+from pydantic import BaseModel, HttpUrl
+from typing import Optional
 
 class PageIn(BaseModel):
     url: HttpUrl

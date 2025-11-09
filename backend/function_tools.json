@@ -1,51 +1,166 @@
-{"function_tools" : 
-    [
+{
+  "tools": [
+    {
+      "function_declarations": [
         {
-            "name": "estimate_flight_emissions_icao",
-            "description": "Estimate per-passenger CO₂ for each leg using ICAO methodology with internal industry averages (no manufacturing/config inputs required).",
-            "parameters": 
-            {
-                "type": "object",
-                "properties": 
-                {
-                    "itinerary": 
-                    {
-                        "type": "array",
-                        "description": "One or more flight legs; if omitted, upstream logic should provide at least origin/destination.",
-                        "items": 
-                        {
-                            "type": "object",
-                            "properties": 
-                            {
-                                "origin_iata": { "type": "string", "minLength": 3, "maxLength": 3 },
-                                "destination_iata": { "type": "string", "minLength": 3, "maxLength": 3 },
-                                "departure_date": { "type": "string", "description": "YYYY-MM-DD", "nullable": true },
-                                "marketing_carrier": { "type": "string", "nullable": true },
-                                "operating_carrier": { "type": "string", "nullable": true },
-                                "flight_number": { "type": "string", "nullable": true },
-                                "aircraft_icao": { "type": "string", "description": "If known (e.g., B77W, A359).", "nullable": true },
-                                "block_time_minutes": { "type": "number", "nullable": true }
-                            },
-                            "required": ["origin_iata", "destination_iata"]
-                        }
-                    },
-                        "cabin_class": 
-                    {
-                            "type": "string",
-                            "enum": ["economy", "premium_economy", "business", "first"],
-                            "description": "Used for cabin allocation via Yseat. Defaults to economy if unknown."
-                    },
-                        "num_passengers": 
-                    {
-                            "type": "integer",
-                            "minimum": 1,
-                            "default": 1,
-                            "description": "Passengers to multiply per-pax emissions by."
+          "name": "get_flight_emissions",
+          "description": "Estimate per-passenger CO₂ for each leg using ICAO methodology with internal industry averages (no manufacturing/config inputs required).",
+          "parameters": {
+            "type_": "OBJECT",
+            "properties": {
+              "itinerary": {
+                "type_": "ARRAY",
+                "description": "One or more flight legs; if omitted, upstream logic should provide at least origin/destination.",
+                "items": {
+                  "type_": "OBJECT",
+                  "properties": {
+                    "origin_iata": { "type_": "STRING", "description": "IATA (3 letters), e.g., JFK" },
+                    "destination_iata": { "type_": "STRING", "description": "IATA (3 letters), e.g., LHR" },
+                    "departure_date": { "type_": "STRING", "description": "YYYY-MM-DD" },
+                    "marketing_carrier": { "type_": "STRING" },
+                    "operating_carrier": { "type_": "STRING" },
+                    "flight_number": { "type_": "STRING" },
+                    "aircraft_icao": { "type_": "STRING", "description": "If known (e.g., B77W, A359)." },
+                    "block_time_minutes": { "type_": "NUMBER" }
+                  },
+                  "required": ["origin_iata", "destination_iata"]
+                }
+              },
+              "cabin_class": {
+                "type_": "STRING",
+                "enum": ["economy", "premium_economy", "business", "first"],
+                "description": "Used for cabin allocation via Yseat. If unknown, treat as economy in your code."
+              },
+              "num_passengers": {
+                "type_": "INTEGER",
+                "description": "Passengers to multiply per-pax emissions by (>=1)."
+              }
+            },
+            "required": ["cabin_class"]
+          }
+        },
+        {
+          "name": "shopping_predict_carbon_footprint",
+          "description": "Cradle-to-grave carbon estimate using Rung A (EPD) → B (materials) → C (category×mass) → D (spend), plus logistics, packaging, use, and end-of-life.",
+          "parameters": {
+            "type_": "OBJECT",
+            "description": "Inputs needed to compute a product's carbon footprint using best-available evidence and model scope.",
+            "properties": {
+              "scope": {
+                "type_": "STRING",
+                "enum": ["cradle_to_gate", "cradle_to_customer", "cradle_to_grave"],
+                "description": "Boundary: production only; should be cradle_to_customer by default unless otherwise specified"
+              },
+              "product": {
+                "type_": "OBJECT",
+                "description": "Observed/enriched product facts from the product page or catalog.",
+                "properties": {
+                  "title": { "type_": "STRING", "description": "Human-readable product name." },
+                  "gtin": { "type_": "STRING", "description": "UPC/EAN/GTIN-14 for EPD matching." },
+                  "brand": { "type_": "STRING", "description": "Manufacturer/brand." },
+                  "model": { "type_": "STRING", "description": "Model or SKU identifier." },
+                  "category": { "type_": "STRING", "description": "Taxonomy string (e.g., Google Product Category)." },
+                  "price_value": { "type_": "NUMBER", "description": "Observed price; used only for spend-based fallback." },
+                  "weight_kg": { "type_": "NUMBER", "description": "Product mass excluding packaging, if readily available on page." },
+                  "materials": {
+                    "type_": "ARRAY",
+                    "description": "Bill of materials for Rung B.",
+                    "items": {
+                      "type_": "OBJECT",
+                      "description": "The material making up the product and if available, the mass of the material.",
+                      "properties": {
+                        "name": { "type_": "STRING", "description": "e.g., stainless_steel, pp_plastic, cotton, glass" },
+                        "mass_kg": { "type_": "NUMBER", "description": "Mass of this material in kg." }
+                      },
+                      "required": ["name"]
                     }
+                  },
+                  "packaging": {
+                    "type_": "ARRAY",
+                    "description": "Packaging bill of materials.",
+                    "items": {
+                      "type_": "OBJECT",
+                      "description": "The material of the packaging component, and if available, the mass of the packaging component.",
+                      "properties": {
+                        "material": { "type_": "STRING", "description": "e.g., corrugate, ldpe_film, molded_pulp, paper" },
+                        "mass_kg": { "type_": "NUMBER", "description": "Mass of the packaging component in kg." }
+                      },
+                      "required": ["material"]
+                    }
+                  }
                 },
-                    "required": ["cabin_class"],
-                    "additionalProperties": false
+                "required": ["title"]
+              },
+              "logistics": {
+                "type_": "OBJECT",
+                "description": "Transport legs and shipped mass to the customer, including returns probability.",
+                "properties": {
+                  "segments": {
+                    "type_": "ARRAY",
+                    "description": "Ordered path from origin to destination.",
+                    "items": {
+                      "type_": "OBJECT",
+                      "description": "One transport leg.",
+                      "properties": {
+                        "mode": { "type_": "STRING", "enum": ["air", "ocean", "truck", "rail", "van", "bike"], "description": "Transport mode for this leg, by default assume transportation by ocean." },
+                        "distance_km": { "type_": "NUMBER", "description": "Distance in kilometers of the transportation, if available." }
+                      },
+                      "required": ["mode"]
+                    }
+                  },
+                  "shipped_mass_kg": { "type_": "NUMBER", "description": "Total shipped mass (product + packaging) in kg." },
+                  "return_probability": { "type_": "NUMBER", "description": "Expected fraction of orders that are returned (0–1), should be 0.25 by default." }
+                }
+              },
+              "use": {
+                "type_": "OBJECT",
+                "description": "Use-phase energy profile (0 if years is 0 or field omitted).",
+                "properties": {
+                  "kwh_per_year": { "type_": "NUMBER", "description": "Annual energy consumption in kWh." },
+                  "power_w": { "type_": "NUMBER", "description": "Rated power in watts." },
+                  "hours_per_day": { "type_": "NUMBER", "description": "Usage hours/day (used with power_w)." },
+                  "years": { "type_": "NUMBER", "description": "Expected years of usage." },
+                  "grid_ef_kg_per_kwh": { "type_": "NUMBER", "description": "Grid EF in kgCO2e/kWh (regional)." }
+                }
+              },
+              "eol": {
+                "type_": "ARRAY",
+                "description": "End-of-life distribution across pathways (fractions should sum to 1).",
+                "items": {
+                  "type_": "OBJECT",
+                  "description": "One disposal/recovery pathway and share.",
+                  "properties": {
+                    "pathway": { "type_": "STRING", "enum": ["landfill", "incineration", "recycling"], "description": "End-of-life route." },
+                    "fraction": { "type_": "NUMBER", "description": "Share of product mass (0–1)." }
+                  },
+                  "required": ["pathway", "fraction"]
+                }
+              },
+              "epd": {
+                "type_": "OBJECT",
+                "description": "Try product-level EPD/LCA databases before falling back to B/C/D.",
+                "properties": {
+                  "enabled": { "type_": "BOOLEAN", "description": "Attempt product-specific EPD/LCA first." },
+                  "sources": {
+                    "type_": "ARRAY",
+                    "description": "Databases to query in priority order.",
+                    "items": { "type_": "STRING", "enum": ["OpenEPD", "EPD_International", "PEP_Ecoconception", "UL_Spot"], "description": "An EPD/LCA source to query." }
+                  }
+                }
+              },
+              "quality": {
+                "type_": "OBJECT",
+                "description": "Uncertainty settings for Monte Carlo confidence intervals.",
+                "properties": {
+                  "mc_runs": { "type_": "INTEGER", "description": "Number of samples; >0 to compute 90% CI." },
+                  "variation_pct": { "type_": "NUMBER", "description": "Relative std dev to jitter components (e.g., 0.15 = 15%)." }
+                }
+              }
+            },
+            "required": ["product"]
+          }
         }
-        }
-    ]
+      ]
+    }
+  ]
 }

@@ -9,9 +9,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from base_models import PageIn, SummaryOut
 
 import google.generativeai as genai
-from crawl4ai import MarkdownGenerator
-from bs4 import BeautifulSoup
+from crawl4ai import DefaultMarkdownGenerator, AsyncWebCrawler, CrawlerRunConfig
+import asyncio
+from dotenv import load_dotenv
 
+import helpers
+
+load_dotenv()
 app = FastAPI(title="Carbon Emissions Pipeline API")
 app.add_middleware(
     CORSMiddleware,
@@ -26,38 +30,36 @@ def get_flight_emissions() -> float:
     return 123.456
 
 
+
 FUNCTION_REGISTRY: Dict[str, Callable[..., Any]] = {
     "get_flight_emissions": get_flight_emissions,
+    "shopping_predict_carbon_footprint": helpers.shopping_predict_carbon_footprint
 }
 
 
-def html_to_markdown_with_crawl4ai(url: str, html: str) -> str:
-    """Convert raw HTML to LLM-friendly Markdown using Crawl4AI."""
-    mg = MarkdownGenerator()
-    md = mg.generate(html=html, url=url)
-    if isinstance(md, dict) and "markdown" in md:
-        return md["markdown"]
-    if isinstance(md, str):
-        return md
-
-    # Fallback: basic text extraction if crawl4ai fails
-    soup = BeautifulSoup(html, "html.parser")
-    text = soup.get_text("\n", strip=True)
-    return f"# Extracted Content\n\nURL: {url}\n\n```\n{text}\n```"
+async def html_to_markdown_with_crawl4ai(url: str, html: str) -> str:
+    cg = DefaultMarkdownGenerator(
+        content_source="cleaned_html",
+        options={"ignore_links": True}
+    )
+    config = CrawlerRunConfig(markdown_generator=cg)
+    async with AsyncWebCrawler() as crawler:
+        result = await crawler.arun(url, config=config)
+        if result.success:
+            return result.markdown
 
 
 def load_function_tools(file_path: str = "function_tools.json") -> List[dict]:
     """Load Gemini tool/function declarations from function_tools.json."""
     with open(file_path, "r", encoding="utf-8") as f:
         data = json.load(f)
-    tools = data.get("function_tools", [])
+    tools = data.get("tools", [])
     if not isinstance(tools, list):
         raise ValueError("`function_tools` must be a list in function_tools.json")
     return tools
 
 
 def init_gemini(tools: List[dict]):
-    """Initialize Gemini 2.5 Pro with system instructions and tools."""
     api_key = os.getenv("GOOGLE_API_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="GOOGLE_API_KEY env var not set.")
@@ -69,11 +71,11 @@ def init_gemini(tools: List[dict]):
         "- Decide whether any available function should be called.\n"
         "- If no function applies, take no action (same as 'no action taken').\n"
         "- If a function applies, call it with concise, well-formed arguments.\n"
-        "- After the tool output is returned, produce a concise end-user summary (≤50 words)."
+        "- After the tool output is returned, produce a concise end-user summary (1 sentence)."
     )
 
     model = genai.GenerativeModel(
-        model_name="gemini-2.5-pro",
+        model_name="gemini-2.5-flash",
         tools=tools,
         system_instruction=system_message,
     )
@@ -95,11 +97,11 @@ def extract_function_call_from_gemini(response) -> Optional[dict]:
 
 def summarize_with_gemini(chat, tool_name: Optional[str], tool_args: Optional[dict], tool_result: Any) -> str:
     """Ask Gemini for a ≤50-word user-facing summary given the tool result."""
+    print(tool_result)
     if tool_name:
         msg = (
             "Tool call completed.\n"
             f"Tool: {tool_name}\n"
-            f"Arguments: {json.dumps(tool_args or {}, ensure_ascii=False)}\n"
             f"Result: {json.dumps(tool_result, ensure_ascii=False)}\n\n"
             "Now produce a ≤50-word user-facing summary."
         )
@@ -122,7 +124,7 @@ async def process_page(payload: PageIn):
       4. If a function is called, execute via registry.
       5. Return Gemini’s ≤50-word summary.
     """
-    markdown = html_to_markdown_with_crawl4ai(str(payload.url), payload.html)
+    markdown = await html_to_markdown_with_crawl4ai(str(payload.url), payload.html)
     tools = load_function_tools("function_tools.json")
     chat = init_gemini(tools)
 
@@ -147,39 +149,12 @@ async def process_page(payload: PageIn):
             raise HTTPException(status_code=400, detail=f"Tool '{fn_name}' not found.")
 
         fn = FUNCTION_REGISTRY[fn_name]
-        tool_result = fn(**tool_args)
+        print(fn_name)
+        tool_result = fn(tool_args)
         summary = summarize_with_gemini(chat, tool_used, tool_args, tool_result)
     else:
         summary = summarize_with_gemini(chat, None, None, None)
-
+    print(summary)
     return SummaryOut(
         summary=summary,
     )
-
-
-# TODO: Implement prompt optimization endpoint
-# @app.post("/api/optimize-prompt", response_model=PromptOptimizationResponse)
-# async def optimize_prompt(request: PromptOptimizationRequest):
-#     """
-#     Optimize a user's LLM prompt to reduce token count while maintaining quality.
-#     
-#     Pipeline:
-#     1. Receive prompt text, page URL, and HTML
-#     2. Use Gemini with function calling to analyze and optimize the prompt
-#     3. Return optimized prompt with token reduction metrics
-#     
-#     The optimization should:
-#     - Remove redundant words/phrases
-#     - Consolidate similar ideas
-#     - Maintain the core intent and meaning
-#     - Preserve important details and context
-#     - Use more concise language where possible
-#     """
-#     # TODO: Implement prompt optimization logic
-#     # 1. Initialize Gemini model with optimization instructions
-#     # 2. Send prompt with optimization request
-#     # 3. Use function calling if needed for structured optimization
-#     # 4. Calculate token counts (original vs optimized)
-#     # 5. Return optimized prompt with metrics
-#     
-#     pass
