@@ -2,7 +2,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 48px;
+  padding: 12.8px 38.4px;
   background-color: #ffffff;
   border-bottom: 1px solid #e5e7eb;
   position: sticky;
@@ -29,7 +29,7 @@
 }
 
 .logo-image {
-  width: 86px;
+  width: 120px;
   height: auto;
   object-fit: contain;
   display: block;
@@ -119,7 +119,7 @@
 
 @media (max-width: 768px) {
   .app-header {
-    padding: 12px 24px;
+    padding: 9.6px 19.2px;
   }
   
   .logo-text {
@@ -127,7 +127,7 @@
   }
   
   .logo-image {
-    width: 67px;
+    width: 94px;
   }
   
   .thermometer-logo {

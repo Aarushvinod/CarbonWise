@@ -347,6 +347,14 @@
   color: #721c24;
 }
 
+.action-description {
+  font-size: 14px;
+  color: #6b7280;
+  margin-top: 8px;
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
 .action-category {
   font-size: 12px;
   color: #7f8c8d;

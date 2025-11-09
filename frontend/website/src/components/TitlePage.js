@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from './Header';
 import './TitlePage.css';
@@ -10,6 +10,9 @@ function TitlePage() {
   const [targetValue, setTargetValue] = useState('');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isWaiting, setIsWaiting] = useState(false);
+  const [activeFeature, setActiveFeature] = useState(0);
+  const featureRefs = [useRef(null), useRef(null), useRef(null)];
+  const sectionRef = useRef(null);
 
   useEffect(() => {
     let interval;
@@ -71,6 +74,62 @@ function TitlePage() {
     return () => clearTimeout(startCycle);
   }, []);
 
+  // Scroll-based feature detection
+  useEffect(() => {
+    const observerOptions = {
+      root: null,
+      rootMargin: '-40% 0px -40% 0px',
+      threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+    };
+
+    let activeEntries = [];
+
+    const observerCallback = (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          const index = featureRefs.findIndex(ref => ref.current === entry.target);
+          if (index !== -1) {
+            activeEntries = activeEntries.filter(e => e.index !== index);
+            activeEntries.push({ index, ratio: entry.intersectionRatio, target: entry.target });
+          }
+        } else {
+          const index = featureRefs.findIndex(ref => ref.current === entry.target);
+          if (index !== -1) {
+            activeEntries = activeEntries.filter(e => e.index !== index);
+          }
+        }
+      });
+
+      // Find the entry with the highest intersection ratio
+      if (activeEntries.length > 0) {
+        const mostVisible = activeEntries.reduce((prev, current) => 
+          (current.ratio > prev.ratio) ? current : prev
+        );
+        setActiveFeature(mostVisible.index);
+      }
+    };
+
+    const observer = new IntersectionObserver(observerCallback, observerOptions);
+
+    // Small delay to ensure refs are set
+    const timeoutId = setTimeout(() => {
+      featureRefs.forEach(ref => {
+        if (ref.current) {
+          observer.observe(ref.current);
+        }
+      });
+    }, 100);
+
+    return () => {
+      clearTimeout(timeoutId);
+      featureRefs.forEach(ref => {
+        if (ref.current) {
+          observer.unobserve(ref.current);
+        }
+      });
+    };
+  }, []);
+
   return (
     <div className="title-page">
       <Header />
@@ -90,9 +149,19 @@ function TitlePage() {
               <button className="cta-button-primary" onClick={() => navigate('/login?mode=signup')}>
                 Get Started
               </button>
-              <button className="cta-button-secondary" onClick={() => navigate('/login')}>
-                Sign In
-              </button>
+              <a 
+                href="https://chrome.google.com/webstore" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="cta-button-secondary chrome-button"
+              >
+                <img 
+                  src="/images/chromelogo.png" 
+                  alt="Chrome Logo" 
+                  className="chrome-logo"
+                />
+                Add to Chrome
+              </a>
             </div>
           </div>
           <div className="hero-image">
@@ -109,67 +178,88 @@ function TitlePage() {
           </div>
         </section>
 
-        {/* Inspiration Section */}
-        <section className="content-section">
-          <div className="section-content">
-            <div className="section-text">
-              <h2 className="section-title">Our Inspiration</h2>
-              <p className="section-description">
-                We noticed that most people around us agreed that climate change was a major issue, 
-                but many didn't know what they could do to help fight it. We're already online all day, 
-                so we set out to monitor everyday digital actions—such as shopping, booking flights, 
-                and streaming—and add real-time carbon feedback.
-              </p>
-            </div>
-            <div className="section-image">
-              <div className="inspiration-visual">
-                <div className="activity-item">
-                  <span className="activity-icon">🛒</span>
-                  <span className="activity-text">Shopping</span>
-                </div>
-                <div className="activity-item">
-                  <span className="activity-icon">✈️</span>
-                  <span className="activity-text">Flights</span>
-                </div>
-                <div className="activity-item">
-                  <span className="activity-icon">📺</span>
-                  <span className="activity-text">Streaming</span>
-                </div>
+        {/* Features Section - Terac Style */}
+        <section className="features-slider-section">
+          <div className="features-slider-container">
+            <h2 className="features-slider-title">Everything you need to track your carbon footprint, end to end</h2>
+            
+            <div className="features-slider-wrapper">
+              <div className="features-slider-nav">
+                <button 
+                  className={`feature-nav-item ${activeFeature === 0 ? 'active' : ''}`}
+                  onClick={() => {
+                    if (featureRefs[0].current) {
+                      featureRefs[0].current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      setTimeout(() => setActiveFeature(0), 100);
+                    }
+                  }}
+                >
+                  <span className="feature-number">01</span>
+                </button>
+                <button 
+                  className={`feature-nav-item ${activeFeature === 1 ? 'active' : ''}`}
+                  onClick={() => {
+                    if (featureRefs[1].current) {
+                      featureRefs[1].current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      setTimeout(() => setActiveFeature(1), 100);
+                    }
+                  }}
+                >
+                  <span className="feature-number">02</span>
+                </button>
+                <button 
+                  className={`feature-nav-item ${activeFeature === 2 ? 'active' : ''}`}
+                  onClick={() => {
+                    if (featureRefs[2].current) {
+                      featureRefs[2].current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      setTimeout(() => setActiveFeature(2), 100);
+                    }
+                  }}
+                >
+                  <span className="feature-number">03</span>
+                </button>
               </div>
-            </div>
-          </div>
-        </section>
 
-        {/* What It Does Section */}
-        <section className="content-section content-section-alt">
-          <div className="section-content">
-            <div className="section-image">
-              <div className="features-visual">
-                <div className="feature-card">
-                  <div className="feature-icon">🤖</div>
-                  <div className="feature-title">AI-Powered</div>
-                  <div className="feature-desc">Smart suggestions tailored to you</div>
+              <div className="features-slider-content" ref={sectionRef}>
+                <div 
+                  ref={featureRefs[0]}
+                  className={`feature-slide ${activeFeature === 0 ? 'active' : ''}`}
+                  data-feature="0"
+                >
+                  <h3 className="feature-slide-title">Website Dashboard</h3>
+                  <p className="feature-slide-description">
+                    Log into the CO₂Ldown website to access your comprehensive carbon footprint dashboard. 
+                    Track all inputted and automatically collected data in one centralized location. 
+                    View your carbon score, recent actions, progress over time, and compete with friends on the leaderboard.
+                  </p>
                 </div>
-                <div className="feature-card">
-                  <div className="feature-icon">📊</div>
-                  <div className="feature-title">Track Progress</div>
-                  <div className="feature-desc">Monthly insights and analytics</div>
+
+                <div 
+                  ref={featureRefs[1]}
+                  className={`feature-slide ${activeFeature === 1 ? 'active' : ''}`}
+                  data-feature="1"
+                >
+                  <h3 className="feature-slide-title">Real-Time Activity Tracking</h3>
+                  <p className="feature-slide-description">
+                    The Chrome extension monitors your digital activity in real time as you browse, shop, stream, 
+                    and work online. It automatically tracks your actions and calculates their carbon impact, 
+                    seamlessly adding each activity to your carbon footprint database without any manual input required.
+                  </p>
                 </div>
-                <div className="feature-card">
-                  <div className="feature-icon">🏆</div>
-                  <div className="feature-title">Compete</div>
-                  <div className="feature-desc">Challenge friends and climb the leaderboard</div>
+
+                <div 
+                  ref={featureRefs[2]}
+                  className={`feature-slide ${activeFeature === 2 ? 'active' : ''}`}
+                  data-feature="2"
+                >
+                  <h3 className="feature-slide-title">AI Prompt Optimization</h3>
+                  <p className="feature-slide-description">
+                    The Chrome extension intelligently optimizes AI prompts in real time to reduce their carbon footprint. 
+                    By analyzing and refining your AI interactions, it helps minimize the computational resources needed 
+                    while maintaining effectiveness, automatically lowering your digital carbon impact.
+                  </p>
                 </div>
               </div>
-            </div>
-            <div className="section-text">
-              <h2 className="section-title">What It Does</h2>
-              <p className="section-description">
-                CO₂Ldown is an AI-powered app that monitors user activity online to give them 
-                suggestions on how they can improve their carbon footprint. You can track your 
-                progress on a monthly basis and compete with friends, all while helping to save 
-                the environment!
-              </p>
             </div>
           </div>
         </section>
@@ -178,7 +268,6 @@ function TitlePage() {
         <section className="cta-section">
           <div className="cta-content">
             <h2 className="cta-title">Ready to Make a Difference?</h2>
-            <p className="cta-text">Join thousands of users tracking their carbon footprint and competing to save the planet.</p>
             <button className="cta-button-large" onClick={() => navigate('/login?mode=signup')}>
               Start Your Journey
             </button>

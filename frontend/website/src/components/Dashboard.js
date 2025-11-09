@@ -50,6 +50,7 @@ function Dashboard() {
           // Dynamically load actions from Firebase
           const actions = userData.actions || {};
           const actionTimestamps = userData.actionTimestamps || {};
+          const actionDescriptions = userData.actionDescriptions || {};
 
           // Convert dictionary format to array format for display
           const actionsArray = Object.keys(actions).map(actionName => ({
@@ -60,6 +61,7 @@ function Dashboard() {
             date: actionTimestamps[actionName] || new Date().toISOString(),
             // Try to infer category from action name (optional)
             category: inferCategory(actionName),
+            description: actionDescriptions[actionName] || '',
           }));
 
           // Sort by timestamp (most recent first)
@@ -169,7 +171,7 @@ Respond with ONLY the number, no additional text or explanation. For example, if
   };
 
   // Add a new action to Firestore
-  const addAction = async (actionName, score) => {
+  const addAction = async (actionName, score, description = '') => {
     if (!user) return;
 
     try {
@@ -180,6 +182,7 @@ Respond with ONLY the number, no additional text or explanation. For example, if
         const userData = userDoc.data();
         const currentActions = userData.actions || {};
         const currentActionTimestamps = userData.actionTimestamps || {};
+        const currentActionDescriptions = userData.actionDescriptions || {};
         const timestamp = new Date().toISOString();
 
         await updateDoc(userDocRef, {
@@ -191,6 +194,10 @@ Respond with ONLY the number, no additional text or explanation. For example, if
             ...currentActionTimestamps,
             [actionName]: timestamp,
           },
+          actionDescriptions: {
+            ...currentActionDescriptions,
+            [actionName]: description,
+          },
         });
 
         // Refresh the data
@@ -199,6 +206,7 @@ Respond with ONLY the number, no additional text or explanation. For example, if
           const updatedData = updatedDoc.data();
           const actions = updatedData.actions || {};
           const actionTimestamps = updatedData.actionTimestamps || {};
+          const actionDescriptions = updatedData.actionDescriptions || {};
 
           const actionsArray = Object.keys(actions).map(name => ({
             action: name,
@@ -207,6 +215,7 @@ Respond with ONLY the number, no additional text or explanation. For example, if
             timestamp: actionTimestamps[name] || new Date().toISOString(),
             date: actionTimestamps[name] || new Date().toISOString(),
             category: inferCategory(name),
+            description: actionDescriptions[name] || '',
           }));
 
           actionsArray.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
@@ -236,7 +245,7 @@ Respond with ONLY the number, no additional text or explanation. For example, if
 
     try {
       const carbonFootprint = await calculateCarbonFootprint(actionName.trim(), actionDescription.trim());
-      await addAction(actionName.trim(), carbonFootprint);
+      await addAction(actionName.trim(), carbonFootprint, actionDescription.trim());
       setActionName('');
       setActionDescription('');
       setSubmitError(null);
@@ -416,6 +425,11 @@ Respond with ONLY the number, no additional text or explanation. For example, if
                           {(action.sustainabilityScore || action.carbonImpact || action.score || 0).toFixed(1)} kg CO₂
                         </span>
                       </div>
+                      {action.description && (
+                        <div className="action-description">
+                          {action.description}
+                        </div>
+                      )}
                       {action.category && (
                         <div className="action-category">
                           Category: {action.category}
