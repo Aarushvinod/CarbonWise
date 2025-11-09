@@ -7,9 +7,6 @@ class PageIn(BaseModel):
 
 class SummaryOut(BaseModel):
     summary: str
-    tool_used: Optional[str] = None
-    tool_args: Optional[dict] = None
-    tool_result: Optional[any] = None
 
 # TODO: Add prompt optimization models
 # class PromptOptimizationRequest(BaseModel):
