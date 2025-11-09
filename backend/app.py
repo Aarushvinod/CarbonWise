@@ -7,16 +7,21 @@ from typing import Any, Callable, Dict, List, Optional
 from fastapi import FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from base_models import PageIn, SummaryOut
-
 import google.generativeai as genai
 from crawl4ai import DefaultMarkdownGenerator, AsyncWebCrawler, CrawlerRunConfig
 import datetime
 from dotenv import load_dotenv
+import dspy
+
+from datetime import timezone
+from firebase_admin import firestore, credentials, auth
+from base_models import PromptOptimizationRequest, PromptOptimizationResponse
 
 import helpers
 import firebase_admin
-from firebase_admin import credentials, auth, firestore
 
+
+dspy.settings.configure(lm = dspy.LM("gemini/gemini-2.5-flash-lite", api_key=os.getenv("GOOGLE_API_KEY"), max_tokens=1500, temperature=0.3))
 load_dotenv()
 app = FastAPI(title="Carbon Emissions Pipeline API")
 app.add_middleware(
@@ -35,11 +40,6 @@ FUNCTION_REGISTRY: Dict[str, Callable[..., Any]] = {
     "get_flight_emissions": helpers.get_flight_emissions,
     "shopping_predict_carbon_footprint": helpers.shopping_predict_carbon_footprint
 }
-
-# --- add near top (helpers) -----------------------------------------------
-from urllib.parse import urlparse
-from firebase_admin import firestore
-
 
 async def html_to_markdown_with_crawl4ai(url: str) -> str:
     cg = DefaultMarkdownGenerator(
@@ -125,8 +125,6 @@ def summarize_with_gemini(chat, tool_name: Optional[str], tool_args: Optional[di
     resp = chat.send_message(msg)
     return getattr(resp, "text", "No summary generated.")[:400]
 
-from datetime import datetime, timezone
-
 def firestore_iso_z(value=None):
     # Return current time string
     if value is None:
@@ -160,6 +158,11 @@ def firestore_iso_z(value=None):
 
     raise TypeError("value must be None, datetime.datetime, or str")
 
+@app.post("/optimize_prompt", response_model=PromptOptimizationResponse)
+def optimize_prompt(payload: PromptOptimizationRequest):
+    optimizer = dspy.load("optimizer_compiled")
+    pred = optimizer(original=payload.prompt)
+    return PromptOptimizationResponse(optimized_prompt=pred.optimized.strip())
 
 @app.post("/process_page", response_model=SummaryOut)
 async def process_page(payload: PageIn, authorization: Optional[str] = Header(default=None)):
