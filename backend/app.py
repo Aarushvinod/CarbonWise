@@ -4,12 +4,6 @@ import json
 import os
 from typing import Any, Callable, Dict, List, Optional
 
-import sys
-import asyncio
-if sys.platform.startswith("win"):
-    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
-
-
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from base_models import PageIn, SummaryOut
@@ -25,8 +19,6 @@ from base_models import PromptOptimizationRequest, PromptOptimizationResponse
 
 import helpers
 import firebase_admin
-import sys
-import asyncio
 
 app = FastAPI(title="Carbon Emissions Pipeline API")
 app.add_middleware(
@@ -57,7 +49,7 @@ async def html_to_markdown_with_crawl4ai(url: str) -> str:
         print('starting to crawl')
         result = await crawler.arun(url, config=config)
         if result.success:
-            print('success!')
+            print(result.markdown)
             return result.markdown
 
 
@@ -92,7 +84,7 @@ def init_gemini(tools: List[dict]):
         temperature = 1
     )
     model = genai.GenerativeModel(
-        model_name="gemini-2.5-flash",
+        model_name="gemini-2.5-pro",
         tools=tools,
         system_instruction=system_message,
         generation_config=config

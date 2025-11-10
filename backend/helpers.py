@@ -1,6 +1,6 @@
 import math
-import statistics
 import random
+from math import radians, sin, cos, sqrt, atan2
 
 def shopping_predict_carbon_footprint(payload: dict) -> float:
     MATERIAL_EF_KG_PER_KG = {
@@ -223,10 +223,6 @@ def shopping_predict_carbon_footprint(payload: dict) -> float:
 
     return float(round(total, 6))
 
-
-from math import radians, sin, cos, sqrt, atan2
-from typing import Dict, Any, List
-
 def get_flight_emissions(schema) -> float:
     """
     Estimate total flight emissions (kg CO2e) for ALL passengers from the given schema.
@@ -241,8 +237,10 @@ def get_flight_emissions(schema) -> float:
     # ---- helpers ----
     def haversine_km(lat1, lon1, lat2, lon2) -> float:
         R = 6371.0
-        phi1 = radians(lat1); phi2 = radians(lat2)
-        dphi = radians(lat2 - lat1); dlambda = radians(lon2 - lon1)
+        phi1 = radians(lat1)
+        phi2 = radians(lat2)
+        dphi = radians(lat2 - lat1)
+        dlambda = radians(lon2 - lon1)
         a = sin(dphi/2.0)**2 + cos(phi1)*cos(phi2)*sin(dlambda/2.0)**2
         c = 2 * atan2(sqrt(a), sqrt(1-a))
         return R * c
@@ -316,7 +314,8 @@ def get_flight_emissions(schema) -> float:
         # distance if coords available
         distance_km = 0.0
         if origin in IATA_COORDS and destination in IATA_COORDS:
-            lat1, lon1 = IATA_COORDS[origin]; lat2, lon2 = IATA_COORDS[destination]
+            lat1, lon1 = IATA_COORDS[origin]
+            lat2, lon2 = IATA_COORDS[destination]
             distance_km = haversine_km(lat1, lon1, lat2, lon2)
 
         # block hours (hours) preference: explicit block_time_minutes, else distance fallback
