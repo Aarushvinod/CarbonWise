@@ -4,12 +4,18 @@ import json
 import os
 from typing import Any, Callable, Dict, List, Optional
 
-from fastapi import FastAPI, HTTPException, Header
+import sys
+import asyncio
+if sys.platform.startswith("win"):
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+
+
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from base_models import PageIn, SummaryOut
 import google.generativeai as genai
-from crawl4ai import DefaultMarkdownGenerator, AsyncWebCrawler, CrawlerRunConfig
 import datetime
+from crawl4ai import DefaultMarkdownGenerator, AsyncWebCrawler, CrawlerRunConfig
 from dotenv import load_dotenv
 import dspy
 
@@ -19,10 +25,9 @@ from base_models import PromptOptimizationRequest, PromptOptimizationResponse
 
 import helpers
 import firebase_admin
+import sys
+import asyncio
 
-
-dspy.settings.configure(lm = dspy.LM("gemini/gemini-2.5-flash-lite", api_key=os.getenv("GOOGLE_API_KEY"), max_tokens=1500, temperature=0.3))
-load_dotenv()
 app = FastAPI(title="Carbon Emissions Pipeline API")
 app.add_middleware(
     CORSMiddleware,
@@ -32,6 +37,7 @@ app.add_middleware(
     allow_headers=["*"],            # e.g. Authorization, Content-Type
 )
 
+load_dotenv()
 cred = credentials.Certificate('service-account.json')
 firebase_admin.initialize_app(cred)
 db = firestore.Client.from_service_account_json('service-account.json')
@@ -48,6 +54,7 @@ async def html_to_markdown_with_crawl4ai(url: str) -> str:
     )
     config = CrawlerRunConfig(markdown_generator=cg)
     async with AsyncWebCrawler() as crawler:
+        print('starting to crawl')
         result = await crawler.arun(url, config=config)
         if result.success:
             print('success!')
@@ -128,7 +135,7 @@ def summarize_with_gemini(chat, tool_name: Optional[str], tool_args: Optional[di
 def firestore_iso_z(value=None):
     # Return current time string
     if value is None:
-        now = datetime.now(timezone.utc)
+        now = datetime.datetime.now(timezone.utc)
         ms = now.microsecond // 1000
         return now.strftime(f"%Y-%m-%dT%H:%M:%S.{ms:03d}Z")
 
@@ -160,25 +167,16 @@ def firestore_iso_z(value=None):
 
 @app.post("/optimize_prompt", response_model=PromptOptimizationResponse)
 def optimize_prompt(payload: PromptOptimizationRequest):
+    dspy.settings.configure(lm = dspy.LM("gemini/gemini-2.5-flash-lite", api_key=os.getenv("GOOGLE_API_KEY"), max_tokens=1500, temperature=0.3))
     optimizer = dspy.load("optimizer_compiled")
     pred = optimizer(original=payload.prompt)
     return PromptOptimizationResponse(optimized_prompt=pred.optimized.strip())
 
 @app.post("/process_page", response_model=SummaryOut)
-async def process_page(payload: PageIn, authorization: Optional[str] = Header(default=None)):
-    """
-    Pipeline:
-      1. Convert HTML → Markdown (Crawl4AI).
-      2. Load Gemini tools.
-      3. Ask Gemini which function to call.
-      4. If a function is called, execute via registry.
-      5. Return Gemini’s ≤50-word summary.
-    """
+async def process_page(payload: PageIn):
     markdown = await html_to_markdown_with_crawl4ai(str(payload.url))
-    print(markdown + "MARKDOWN")
     tools = load_function_tools("function_tools.json")
     chat = init_gemini(tools)
-
     # Step 1: Ask Gemini to decide which function (if any) to call
     prompt = (
         "Here is the page context.\n\n"
